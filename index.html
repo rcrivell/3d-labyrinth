@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>World Population Treemap</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; color: #fff; font-family: sans-serif; }
+  h1 { text-align: center; padding: 16px 0 4px; font-size: 22px; font-weight: 300; letter-spacing: 2px; }
+  p.sub { text-align: center; color: #888; font-size: 12px; margin-bottom: 12px; }
+  #chart { width: 100vw; height: calc(100vh - 80px); }
+  .cell rect { stroke: #111; stroke-width: 1.5; cursor: pointer; transition: opacity 0.15s; }
+  .cell rect:hover { opacity: 0.8; }
+  .cell text { pointer-events: none; fill: #fff; text-shadow: 0 1px 3px #000; }
+  .label-country { font-size: 13px; font-weight: 600; }
+  .label-pop { font-size: 11px; fill: rgba(255,255,255,0.75); }
+  #tooltip {
+    position: fixed; background: rgba(0,0,0,0.85); border: 1px solid #444;
+    padding: 10px 14px; border-radius: 6px; font-size: 13px; pointer-events: none;
+    display: none; max-width: 220px; line-height: 1.6;
+  }
+  #tooltip strong { font-size: 15px; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 6px 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #ccc; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<h1>WORLD POPULATION TREEMAP</h1>
+<p class="sub">2024 estimates — area proportional to population</p>
+<div id="legend" class="legend"></div>
+<svg id="chart"></svg>
+<div id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+const data = {
+  name: "World",
+  children: [
+    { name: "Asia", children: [
+      { name: "China", pop: 1419, continent: "Asia" },
+      { name: "India", pop: 1450, continent: "Asia" },
+      { name: "Indonesia", pop: 279, continent: "Asia" },
+      { name: "Pakistan", pop: 245, continent: "Asia" },
+      { name: "Bangladesh", pop: 173, continent: "Asia" },
+      { name: "Japan", pop: 123, continent: "Asia" },
+      { name: "Philippines", pop: 118, continent: "Asia" },
+      { name: "Vietnam", pop: 98, continent: "Asia" },
+      { name: "Iran", pop: 90, continent: "Asia" },
+      { name: "Turkey", pop: 86, continent: "Asia" },
+      { name: "Thailand", pop: 72, continent: "Asia" },
+      { name: "Myanmar", pop: 55, continent: "Asia" },
+      { name: "South Korea", pop: 52, continent: "Asia" },
+      { name: "Iraq", pop: 43, continent: "Asia" },
+      { name: "Afghanistan", pop: 42, continent: "Asia" },
+      { name: "Saudi Arabia", pop: 37, continent: "Asia" },
+      { name: "Uzbekistan", pop: 36, continent: "Asia" },
+      { name: "Malaysia", pop: 34, continent: "Asia" },
+      { name: "Yemen", pop: 34, continent: "Asia" },
+      { name: "Nepal", pop: 30, continent: "Asia" },
+      { name: "Taiwan", pop: 24, continent: "Asia" },
+      { name: "Sri Lanka", pop: 22, continent: "Asia" },
+      { name: "Kazakhstan", pop: 19, continent: "Asia" },
+      { name: "Syria", pop: 22, continent: "Asia" },
+      { name: "Cambodia", pop: 17, continent: "Asia" },
+      { name: "Jordan", pop: 10, continent: "Asia" },
+      { name: "Azerbaijan", pop: 10, continent: "Asia" },
+      { name: "UAE", pop: 10, continent: "Asia" },
+      { name: "Tajikistan", pop: 10, continent: "Asia" },
+      { name: "Israel", pop: 10, continent: "Asia" },
+    ]},
+    { name: "Africa", children: [
+      { name: "Nigeria", pop: 229, continent: "Africa" },
+      { name: "Ethiopia", pop: 128, continent: "Africa" },
+      { name: "Egypt", pop: 106, continent: "Africa" },
+      { name: "DR Congo", pop: 102, continent: "Africa" },
+      { name: "Tanzania", pop: 68, continent: "Africa" },
+      { name: "South Africa", pop: 60, continent: "Africa" },
+      { name: "Kenya", pop: 56, continent: "Africa" },
+      { name: "Uganda", pop: 49, continent: "Africa" },
+      { name: "Algeria", pop: 46, continent: "Africa" },
+      { name: "Sudan", pop: 46, continent: "Africa" },
+      { name: "Morocco", pop: 38, continent: "Africa" },
+      { name: "Ghana", pop: 34, continent: "Africa" },
+      { name: "Mozambique", pop: 33, continent: "Africa" },
+      { name: "Angola", pop: 36, continent: "Africa" },
+      { name: "Madagascar", pop: 29, continent: "Africa" },
+      { name: "Cameroon", pop: 28, continent: "Africa" },
+      { name: "Ivory Coast", pop: 27, continent: "Africa" },
+      { name: "Niger", pop: 26, continent: "Africa" },
+      { name: "Burkina Faso", pop: 23, continent: "Africa" },
+      { name: "Mali", pop: 23, continent: "Africa" },
+      { name: "Malawi", pop: 21, continent: "Africa" },
+      { name: "Zambia", pop: 20, continent: "Africa" },
+      { name: "Zimbabwe", pop: 16, continent: "Africa" },
+      { name: "Senegal", pop: 17, continent: "Africa" },
+      { name: "Somalia", pop: 18, continent: "Africa" },
+      { name: "Tunisia", pop: 12, continent: "Africa" },
+      { name: "Rwanda", pop: 14, continent: "Africa" },
+    ]},
+    { name: "Europe", children: [
+      { name: "Russia", pop: 144, continent: "Europe" },
+      { name: "Germany", pop: 84, continent: "Europe" },
+      { name: "United Kingdom", pop: 68, continent: "Europe" },
+      { name: "France", pop: 68, continent: "Europe" },
+      { name: "Italy", pop: 59, continent: "Europe" },
+      { name: "Spain", pop: 48, continent: "Europe" },
+      { name: "Ukraine", pop: 43, continent: "Europe" },
+      { name: "Poland", pop: 41, continent: "Europe" },
+      { name: "Romania", pop: 19, continent: "Europe" },
+      { name: "Netherlands", pop: 18, continent: "Europe" },
+      { name: "Belgium", pop: 12, continent: "Europe" },
+      { name: "Sweden", pop: 10, continent: "Europe" },
+      { name: "Czech Republic", pop: 11, continent: "Europe" },
+      { name: "Portugal", pop: 10, continent: "Europe" },
+      { name: "Greece", pop: 10, continent: "Europe" },
+      { name: "Hungary", pop: 10, continent: "Europe" },
+      { name: "Austria", pop: 9, continent: "Europe" },
+      { name: "Serbia", pop: 7, continent: "Europe" },
+      { name: "Switzerland", pop: 9, continent: "Europe" },
+      { name: "Belarus", pop: 9, continent: "Europe" },
+    ]},
+    { name: "Americas", children: [
+      { name: "USA", pop: 341, continent: "Americas" },
+      { name: "Brazil", pop: 216, continent: "Americas" },
+      { name: "Mexico", pop: 130, continent: "Americas" },
+      { name: "Colombia", pop: 52, continent: "Americas" },
+      { name: "Argentina", pop: 46, continent: "Americas" },
+      { name: "Canada", pop: 39, continent: "Americas" },
+      { name: "Peru", pop: 34, continent: "Americas" },
+      { name: "Venezuela", pop: 29, continent: "Americas" },
+      { name: "Chile", pop: 19, continent: "Americas" },
+      { name: "Ecuador", pop: 18, continent: "Americas" },
+      { name: "Guatemala", pop: 18, continent: "Americas" },
+      { name: "Cuba", pop: 11, continent: "Americas" },
+      { name: "Bolivia", pop: 13, continent: "Americas" },
+      { name: "Haiti", pop: 12, continent: "Americas" },
+      { name: "Dominican Rep.", pop: 11, continent: "Americas" },
+      { name: "Honduras", pop: 11, continent: "Americas" },
+      { name: "Paraguay", pop: 7, continent: "Americas" },
+      { name: "El Salvador", pop: 6, continent: "Americas" },
+      { name: "Nicaragua", pop: 7, continent: "Americas" },
+    ]},
+    { name: "Oceania", children: [
+      { name: "Australia", pop: 27, continent: "Oceania" },
+      { name: "Papua New Guinea", pop: 10, continent: "Oceania" },
+      { name: "New Zealand", pop: 5, continent: "Oceania" },
+      { name: "Fiji", pop: 1, continent: "Oceania" },
+    ]},
+  ]
+};
+
+const continentColors = {
+  "Asia":     "#e07b39",
+  "Africa":   "#4caf7d",
+  "Europe":   "#5b8dd9",
+  "Americas": "#c84b6e",
+  "Oceania":  "#a259c4",
+};
+
+function fmtPop(m) {
+  if (m >= 1000) return (m/1000).toFixed(2) + "B";
+  if (m >= 1)    return m.toFixed(1) + "M";
+  return (m * 1000).toFixed(0) + "K";
+}
+
+const svg = d3.select("#chart");
+const tooltip = document.getElementById("tooltip");
+
+function render() {
+  svg.selectAll("*").remove();
+  const W = window.innerWidth, H = window.innerHeight - 80 - document.getElementById("legend").offsetHeight;
+  svg.attr("width", W).attr("height", H);
+
+  const root = d3.hierarchy(data)
+    .sum(d => d.pop)
+    .sort((a, b) => b.value - a.value);
+
+  d3.treemap().size([W, H]).paddingOuter(4).paddingInner(2).paddingTop(0).round(true)(root);
+
+  const cells = svg.selectAll("g")
+    .data(root.leaves())
+    .join("g")
+    .attr("class", "cell")
+    .attr("transform", d => `translate(${d.x0},${d.y0})`);
+
+  cells.append("rect")
+    .attr("width",  d => d.x1 - d.x0)
+    .attr("height", d => d.y1 - d.y0)
+    .attr("fill", d => {
+      const color = d3.color(continentColors[d.data.continent] || "#888");
+      const t = Math.log(d.data.pop + 1) / Math.log(1500);
+      return d3.interpolate(color.darker(1.2), color.brighter(0.3))(t);
+    });
+
+  cells.each(function(d) {
+    const w = d.x1 - d.x0, h = d.y1 - d.y0;
+    const g = d3.select(this);
+    if (w > 40 && h > 24) {
+      g.append("text")
+        .attr("class", "label-country")
+        .attr("x", w / 2).attr("y", h / 2 - (h > 40 ? 6 : 0))
+        .attr("text-anchor", "middle").attr("dominant-baseline", "middle")
+        .style("font-size", Math.min(13, w / 6) + "px")
+        .text(d.data.name);
+      if (h > 40) {
+        g.append("text")
+          .attr("class", "label-pop")
+          .attr("x", w / 2).attr("y", h / 2 + 10)
+          .attr("text-anchor", "middle").attr("dominant-baseline", "middle")
+          .style("font-size", Math.min(11, w / 8) + "px")
+          .text(fmtPop(d.data.pop));
+      }
+    }
+  });
+
+  cells
+    .on("mousemove", (e, d) => {
+      tooltip.style.display = "block";
+      tooltip.style.left = (e.clientX + 14) + "px";
+      tooltip.style.top  = (e.clientY - 10) + "px";
+      tooltip.innerHTML = `<strong>${d.data.name}</strong><br>
+        Continent: ${d.data.continent}<br>
+        Population: <b>${fmtPop(d.data.pop)}</b><br>
+        Share of world: <b>${(d.value / root.value * 100).toFixed(2)}%</b>`;
+    })
+    .on("mouseleave", () => tooltip.style.display = "none");
+}
+
+// Legend
+const legendEl = document.getElementById("legend");
+Object.entries(continentColors).forEach(([name, color]) => {
+  legendEl.innerHTML += `<div class="legend-item">
+    <div class="legend-dot" style="background:${color}"></div>${name}
+  </div>`;
+});
+
+render();
+window.addEventListener("resize", render);
+</script>
+</body>
+</html>
